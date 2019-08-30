@@ -54,27 +54,46 @@ public final class EchoClient {
         }
 
         // Configure the client.
+        ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel ch) throws Exception {
+                ChannelPipeline p = ch.pipeline();
+                if (sslCtx != null) {
+                    p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
+                }
+                p.addLast(new LoggingHandler(LogLevel.INFO));
+                p.addLast(new EchoClientHandler());
+            }
+        };
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
             b.group(group)
              .channel(NioSocketChannel.class)
              .option(ChannelOption.TCP_NODELAY, true)
-             .handler(new ChannelInitializer<SocketChannel>() {
-                 @Override
-                 public void initChannel(SocketChannel ch) throws Exception {
-                     ChannelPipeline p = ch.pipeline();
-                     if (sslCtx != null) {
-                         p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
-                     }
-                     p.addLast(new LoggingHandler(LogLevel.INFO));
-                     p.addLast(new EchoClientHandler());
-                 }
-             });
+             .handler(channelInitializer);
+
+//            Bootstrap c = new Bootstrap();
+//            c.group(group)
+//                    .channel(NioSocketChannel.class)
+//                    .option(ChannelOption.TCP_NODELAY, true)
+//                    .handler(new ChannelInitializer<SocketChannel>() {
+//                        @Override
+//                        public void initChannel(SocketChannel ch) throws Exception {
+//                            ChannelPipeline p = ch.pipeline();
+//                            if (sslCtx != null) {
+//                                p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
+//                            }
+////                            p.addLast(new LoggingHandler(LogLevel.INFO));
+//                            p.addLast(new EchoClientHandler());
+//                        }
+//                    });
 
             // Start the client.
             ChannelFuture f = b.connect(HOST, PORT).sync();
-
+            System.out.println("hahaha");
+//            ChannelFuture f1 = c.connect(HOST, PORT).sync();
+//            System.out.println("lalala");
             // Wait until the connection is closed.
             f.channel().closeFuture().sync();
         } finally {
